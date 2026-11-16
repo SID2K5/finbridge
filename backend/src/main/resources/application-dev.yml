@@ -1,0 +1,8 @@
+# Local development: adds clearly labelled [DEMO] seed rows and opens Swagger UI.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+
+finbridge:
+  security:
+    public-api-docs: true

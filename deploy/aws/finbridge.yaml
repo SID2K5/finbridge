@@ -1,0 +1,922 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  FinBridge, stack 2 of 2: network, load balancer, three ECS Fargate services, RDS MySQL,
+  one EC2 instance for Odoo, logs and alarms. Everything here is billed while it exists;
+  see docs/deployment-guide.md for how to stop it between demos and how to delete it.
+
+# ---------------------------------------------------------------------------------------------
+# Secrets are NOT parameters of this template. They are SecureString parameters in Systems
+# Manager Parameter Store, created by deploy.sh before this stack, under /<ProjectName>/...
+#   db-password, jwt-secret, sim-api-key, bootstrap-admin-password, odoo-pg-password,
+#   odoo-api-key (a placeholder until the Odoo instance replaces it with the real key)
+# ---------------------------------------------------------------------------------------------
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: finbridge
+    AllowedPattern: "[a-z][a-z0-9-]{2,20}"
+  ImageTag:
+    Type: String
+    Description: Tag of the three images in ECR (the git commit or a timestamp; never "latest").
+    AllowedPattern: "[A-Za-z0-9._-]{1,100}"
+  DesiredCount:
+    Type: Number
+    Default: 1
+    AllowedValues: [0, 1]
+    Description: 1 runs the services; 0 stops all three tasks without deleting anything.
+  BootstrapAdminEmail:
+    Type: String
+    Description: Email of the first FinBridge administrator (its password is in Parameter Store).
+    AllowedPattern: "[^@\\s]+@[^@\\s]+"
+  OdooDatabase:
+    Type: String
+    Default: finbridge
+  DbInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+  OdooInstanceType:
+    Type: String
+    Default: t3.small
+    Description: Odoo and its PostgreSQL need about 2 GB of memory.
+  OdooImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Optional. Receives the two alarms. Leave empty for alarms without notification.
+
+Conditions:
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Mappings:
+  Network:
+    Cidr:
+      Vpc: 10.42.0.0/16
+      PublicA: 10.42.0.0/24
+      PublicB: 10.42.1.0/24
+      PrivateA: 10.42.10.0/24
+      PrivateB: 10.42.11.0/24
+
+Resources:
+
+  # =========================================================================================
+  # Network. Tasks and the Odoo host sit in public subnets with public addresses so that they
+  # can pull images without a NAT gateway (which bills by the hour). Security groups, not
+  # subnets, decide who may talk to whom. The database sits in private subnets.
+  # =========================================================================================
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [Network, Cidr, Vpc]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref ProjectName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !FindInMap [Network, Cidr, PublicA]
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-public-a"
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !FindInMap [Network, Cidr, PublicB]
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-public-b"
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !FindInMap [Network, Cidr, PrivateA]
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-private-a"
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !FindInMap [Network, Cidr, PrivateB]
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-private-b"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARoute:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRoute:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # =========================================================================================
+  # Security groups: the only way in from the internet is the load balancer on port 80.
+  #   internet -> ALB -> frontend:8080, backend:8080
+  #   backend  -> simulator:8090, MySQL:3306, Odoo:8069
+  # Nothing has SSH open. The Odoo host is reached with Systems Manager Session Manager.
+  # =========================================================================================
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge load balancer - HTTP from the internet
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from anywhere (the demo has no domain, so no HTTPS)
+
+  FrontendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge frontend - only from the load balancer
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  BackendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge backend - only from the load balancer
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  SimulatorSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge payment simulator - only from the backend
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8090
+          ToPort: 8090
+          SourceSecurityGroupId: !Ref BackendSecurityGroup
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge MySQL - only from the backend
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref BackendSecurityGroup
+
+  OdooSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge Odoo host - only from the backend, no SSH
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8069
+          ToPort: 8069
+          SourceSecurityGroupId: !Ref BackendSecurityGroup
+
+  # =========================================================================================
+  # Database: RDS MySQL 8.4, smallest burstable class, single AZ, not reachable from outside.
+  # Flyway creates the schema when the backend starts.
+  # =========================================================================================
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: FinBridge private subnets
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    # Deleting the stack deletes the database. teardown.sh offers a final snapshot first, so
+    # keeping or dropping the data is a decision you make, not a default.
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBInstanceIdentifier: !Sub "${ProjectName}-mysql"
+      Engine: mysql
+      EngineVersion: "8.4"
+      AutoMinorVersionUpgrade: true
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: "20"
+      StorageType: gp3
+      StorageEncrypted: true
+      MultiAZ: false
+      PubliclyAccessible: false
+      DBName: finbridge
+      MasterUsername: finbridge
+      MasterUserPassword: !Sub "{{resolve:ssm-secure:/${ProjectName}/db-password}}"
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+      CopyTagsToSnapshot: true
+
+  # =========================================================================================
+  # Odoo on one small EC2 instance (design decision 6): Odoo 19 and its PostgreSQL in Docker.
+  # On first boot it creates the Odoo database, an integration user and an API key, and puts
+  # the key into Parameter Store, where the backend reads it. No SSH key, no open port.
+  # =========================================================================================
+  OdooRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore    # Session Manager instead of SSH
+      Policies:
+        - PolicyName: odoo-parameters
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/odoo-pg-password"
+              - Effect: Allow
+                Action: ssm:PutParameter
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/odoo-api-key"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/odoo-admin-password"
+
+  OdooInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref OdooRole
+
+  OdooInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: PublicRoute
+    Properties:
+      ImageId: !Ref OdooImageId
+      InstanceType: !Ref OdooInstanceType
+      IamInstanceProfile: !Ref OdooInstanceProfile
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !Ref OdooSecurityGroup
+      MetadataOptions:
+        HttpTokens: required          # IMDSv2 only
+        HttpPutResponseHopLimit: 2    # lets the containers' tooling reach it; not used by Odoo
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-odoo"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # First-boot setup of the Odoo host. Output: /var/log/finbridge-odoo-setup.log
+          set -euo pipefail
+          exec > >(tee -a /var/log/finbridge-odoo-setup.log) 2>&1
+          echo "FinBridge Odoo setup started $(date -u +%FT%TZ)"
+
+          dnf install -y docker
+          systemctl enable --now docker
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64" \
+            -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+          mkdir -p /opt/odoo && cd /opt/odoo
+          umask 077
+          PG_PASSWORD="$(aws ssm get-parameter --region ${AWS::Region} --with-decryption \
+            --name /${ProjectName}/odoo-pg-password --query Parameter.Value --output text)"
+          printf 'ODOO_PG_PASSWORD=%s\nODOO_DB=%s\n' "$PG_PASSWORD" "${OdooDatabase}" > .env
+
+          cat > docker-compose.yml <<'COMPOSE'
+          name: finbridge-odoo
+          services:
+            odoo-db:
+              image: postgres:16
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: postgres
+                POSTGRES_USER: odoo
+                POSTGRES_PASSWORD: ${!ODOO_PG_PASSWORD}
+              volumes:
+                - odoo-db-data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+                interval: 10s
+                timeout: 5s
+                retries: 12
+            odoo:
+              image: odoo:19.0
+              restart: unless-stopped
+              depends_on:
+                odoo-db:
+                  condition: service_healthy
+              command: ["odoo", "--database", "${!ODOO_DB}", "--no-database-list"]
+              environment:
+                HOST: odoo-db
+                USER: odoo
+                PASSWORD: ${!ODOO_PG_PASSWORD}
+              ports:
+                - "8069:8069"
+              volumes:
+                - odoo-data:/var/lib/odoo
+          volumes:
+            odoo-db-data:
+            odoo-data:
+          COMPOSE
+
+          cat > setup.py <<'PYTHON'
+          # Run once inside "odoo shell": a generated admin password, a read-only integration
+          # user without a password, and its API key. Prints the two values for the caller.
+          import secrets
+          from datetime import datetime, timedelta
+          admin = env.ref('base.user_admin')
+          admin_password = secrets.token_urlsafe(18)
+          admin.password = admin_password
+          Users = env['res.users'].with_context(no_reset_password=True)
+          bot = Users.search([('login', '=', 'finbridge-integration')], limit=1)
+          if not bot:
+              groups = [env.ref('base.group_user').id, env.ref('account.group_account_invoice').id,
+                        env.ref('purchase.group_purchase_user').id]
+              bot = Users.create({'name': 'FinBridge Integration', 'login': 'finbridge-integration',
+                                  'group_ids': [(6, 0, groups)]})
+          key = env['res.users.apikeys'].with_user(bot)._generate(
+              'rpc', 'finbridge backend', datetime.now() + timedelta(days=85))
+          env.cr.commit()
+          print("FINBRIDGE_ADMIN_PASSWORD=" + admin_password)
+          print("FINBRIDGE_API_KEY=" + key)
+          PYTHON
+
+          docker compose up -d odoo-db
+          if [ ! -f .initialized ]; then
+            echo "Creating the Odoo database with Invoicing and Purchase (a few minutes)"
+            docker compose run --rm -T odoo odoo -d "${OdooDatabase}" -i account,purchase \
+              --stop-after-init --without-demo=True --log-level=warn
+            docker compose run --rm -T odoo odoo shell -d "${OdooDatabase}" --no-http --log-level=error \
+              < setup.py > setup.out
+            ADMIN_PASSWORD="$(grep '^FINBRIDGE_ADMIN_PASSWORD=' setup.out | cut -d= -f2-)"
+            API_KEY="$(grep '^FINBRIDGE_API_KEY=' setup.out | cut -d= -f2-)"
+            rm -f setup.out
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Odoo did not return an API key" && exit 1
+            fi
+            aws ssm put-parameter --region ${AWS::Region} --overwrite --type SecureString \
+              --name /${ProjectName}/odoo-api-key --value "$API_KEY" > /dev/null
+            aws ssm put-parameter --region ${AWS::Region} --overwrite --type SecureString \
+              --name /${ProjectName}/odoo-admin-password --value "$ADMIN_PASSWORD" > /dev/null
+            touch .initialized
+            echo "Odoo database, integration user and API key are ready"
+          fi
+          docker compose up -d odoo
+          echo "FinBridge Odoo setup finished $(date -u +%FT%TZ)"
+
+  # =========================================================================================
+  # Load balancer: one public address. /api/* goes to the backend, everything else to the
+  # frontend. The simulator, the database and Odoo are not behind it.
+  # =========================================================================================
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: PublicRoute
+    Properties:
+      Name: !Sub "${ProjectName}-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      LoadBalancerAttributes:
+        - Key: routing.http.drop_invalid_header_fields.enabled
+          Value: "true"
+        - Key: idle_timeout.timeout_seconds
+          Value: "90"
+
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref Vpc
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8080
+      HealthCheckPath: /healthz
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "15"
+
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref Vpc
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8080
+      HealthCheckPath: /actuator/health
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FrontendTargetGroup
+
+  ApiRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          Values: ["/api/*"]
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+
+  # =========================================================================================
+  # Logs: one group per service, kept 7 days. The backend logs JSON (profile "prod"), and its
+  # correlation id makes one request searchable across every line it produced.
+  # =========================================================================================
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/${ProjectName}/backend"
+      RetentionInDays: 7
+
+  FrontendLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/${ProjectName}/frontend"
+      RetentionInDays: 7
+
+  SimulatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/${ProjectName}/simulator"
+      RetentionInDays: 7
+
+  # =========================================================================================
+  # IAM. The execution role is what ECS uses to start a task: pull the image, write logs and
+  # read exactly the named parameters. The task role is what the application itself may do
+  # in AWS: nothing. No access key exists inside any container.
+  # =========================================================================================
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: read-finbridge-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameters
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/db-password"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/jwt-secret"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/sim-api-key"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/odoo-api-key"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/bootstrap-admin-password"
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      # No policies on purpose.
+
+  # =========================================================================================
+  # ECS: one Fargate cluster, one service per image. The backend finds the simulator by the
+  # name "simulator" through ECS Service Connect.
+  # =========================================================================================
+  Namespace:
+    Type: AWS::ServiceDiscovery::HttpNamespace
+    Properties:
+      Name: !Sub "${ProjectName}"
+      Description: FinBridge Service Connect namespace
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ProjectName
+      ServiceConnectDefaults:
+        Namespace: !GetAtt Namespace.Arn
+
+  SimulatorTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-simulator"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "1024"
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: simulator
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/${ProjectName}-simulator:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - Name: soap
+              ContainerPort: 8090
+              Protocol: tcp
+              AppProtocol: http
+          Environment:
+            - Name: SIM_PORT
+              Value: "8090"
+          Secrets:
+            - Name: SIM_API_KEY
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/sim-api-key"
+          HealthCheck:
+            Command: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8090/ws/payments.wsdl || exit 1"]
+            Interval: 15
+            Timeout: 5
+            Retries: 5
+            StartPeriod: 60
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref SimulatorLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: simulator
+
+  BackendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-backend"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "512"
+      Memory: "1024"
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/${ProjectName}-backend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - Name: http
+              ContainerPort: 8080
+              Protocol: tcp
+              AppProtocol: http
+          Environment:
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: prod                       # no demo data, API docs closed, JSON logs
+            - Name: SERVER_PORT
+              Value: "8080"
+            - Name: DB_URL
+              Value: !Sub "jdbc:mysql://${Database.Endpoint.Address}:${Database.Endpoint.Port}/finbridge?connectionTimeZone=UTC&sslMode=REQUIRED"
+            - Name: DB_USERNAME
+              Value: finbridge
+            - Name: CORS_ALLOWED_ORIGINS
+              Value: !Sub "http://${LoadBalancer.DNSName}"
+            - Name: BOOTSTRAP_ADMIN_EMAIL
+              Value: !Ref BootstrapAdminEmail
+            - Name: BOOTSTRAP_ADMIN_NAME
+              Value: FinBridge Administrator
+            - Name: ODOO_URL
+              Value: !Sub "http://${OdooInstance.PrivateIp}:8069"
+            - Name: ODOO_DB
+              Value: !Ref OdooDatabase
+            - Name: PAYMENT_WS_URL
+              Value: http://simulator:8090/ws
+            - Name: SIM_URL
+              Value: http://simulator:8090
+          Secrets:
+            - Name: DB_PASSWORD
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/db-password"
+            - Name: JWT_SECRET
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/jwt-secret"
+            - Name: SIM_API_KEY
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/sim-api-key"
+            - Name: ODOO_API_KEY
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/odoo-api-key"
+            - Name: BOOTSTRAP_ADMIN_PASSWORD
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/bootstrap-admin-password"
+          HealthCheck:
+            Command: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+            Interval: 15
+            Timeout: 5
+            Retries: 5
+            StartPeriod: 120
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BackendLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: backend
+
+  FrontendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-frontend"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/${ProjectName}-frontend:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - Name: http
+              ContainerPort: 8080
+              Protocol: tcp
+          # BACKEND_URL is not set: the load balancer routes /api, nginx only serves the files.
+          HealthCheck:
+            Command: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+            Interval: 15
+            Timeout: 5
+            Retries: 5
+            StartPeriod: 15
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref FrontendLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: frontend
+
+  SimulatorService:
+    Type: AWS::ECS::Service
+    DependsOn: PublicRoute
+    Properties:
+      ServiceName: !Sub "${ProjectName}-simulator"
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref SimulatorTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED          # to pull the image without a NAT gateway; no inbound rule allows the internet in
+          Subnets:
+            - !Ref PublicSubnetA
+            - !Ref PublicSubnetB
+          SecurityGroups:
+            - !Ref SimulatorSecurityGroup
+      ServiceConnectConfiguration:
+        Enabled: true
+        Namespace: !GetAtt Namespace.Arn
+        Services:
+          - PortName: soap
+            DiscoveryName: simulator
+            ClientAliases:
+              - Port: 8090
+                DnsName: simulator
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0           # one task: replace it rather than run two
+        MaximumPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+  BackendService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ApiRule
+      - SimulatorService
+    Properties:
+      ServiceName: !Sub "${ProjectName}-backend"
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref BackendTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      HealthCheckGracePeriodSeconds: 180
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnetA
+            - !Ref PublicSubnetB
+          SecurityGroups:
+            - !Ref BackendSecurityGroup
+      ServiceConnectConfiguration:
+        Enabled: true                      # client only: lets it resolve "simulator"
+        Namespace: !GetAtt Namespace.Arn
+      LoadBalancers:
+        - ContainerName: backend
+          ContainerPort: 8080
+          TargetGroupArn: !Ref BackendTargetGroup
+      DeploymentConfiguration:
+        # One backend instance only: the "one sync run at a time" rule lives in the application.
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+  FrontendService:
+    Type: AWS::ECS::Service
+    DependsOn: HttpListener
+    Properties:
+      ServiceName: !Sub "${ProjectName}-frontend"
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref FrontendTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      HealthCheckGracePeriodSeconds: 30
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnetA
+            - !Ref PublicSubnetB
+          SecurityGroups:
+            - !Ref FrontendSecurityGroup
+      LoadBalancers:
+        - ContainerName: frontend
+          ContainerPort: 8080
+          TargetGroupArn: !Ref FrontendTargetGroup
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+  # =========================================================================================
+  # Alarms: errors in the backend log, and 5xx answers at the load balancer.
+  # =========================================================================================
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlarmEmail
+    Properties:
+      TopicName: !Sub "${ProjectName}-alarms"
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlarmEmail
+
+  BackendErrorFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref BackendLogGroup
+      # The backend's JSON log lines (Elastic Common Schema) carry the level in log.level.
+      FilterPattern: '{ $.log.level = "ERROR" }'
+      MetricTransformations:
+        - MetricNamespace: !Sub "${ProjectName}"
+          MetricName: BackendErrors
+          MetricValue: "1"
+          DefaultValue: 0
+
+  BackendErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-backend-errors"
+      AlarmDescription: The backend logged at least one ERROR in five minutes.
+      Namespace: !Sub "${ProjectName}"
+      MetricName: BackendErrors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref AlarmTopic], !Ref "AWS::NoValue"]
+
+  LoadBalancer5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-alb-5xx"
+      AlarmDescription: The load balancer or a target answered 5xx five or more times in five minutes.
+      Metrics:
+        - Id: total
+          Expression: "elb + target"
+          Label: 5xx responses
+        - Id: elb
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApplicationELB
+              MetricName: HTTPCode_ELB_5XX_Count
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !GetAtt LoadBalancer.LoadBalancerFullName
+            Period: 300
+            Stat: Sum
+        - Id: target
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApplicationELB
+              MetricName: HTTPCode_Target_5XX_Count
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !GetAtt LoadBalancer.LoadBalancerFullName
+            Period: 300
+            Stat: Sum
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref AlarmTopic], !Ref "AWS::NoValue"]
+
+Outputs:
+  Url:
+    Description: Open this in a browser. Plain HTTP - do not type real passwords into it.
+    Value: !Sub "http://${LoadBalancer.DNSName}"
+  ClusterName:
+    Value: !Ref Cluster
+  DatabaseIdentifier:
+    Value: !Ref Database
+  OdooInstanceId:
+    Description: For Session Manager and for stopping the instance between demos.
+    Value: !Ref OdooInstance
+  BackendLogGroup:
+    Value: !Ref BackendLogGroup

@@ -1,0 +1,44 @@
+# FinBridge payment simulator: a stand-in for an external payment provider.
+# SOAP on /ws (contract: xsd/payments.xsd), REST controls on /sim (need X-Sim-Api-Key).
+
+spring:
+  application:
+    name: payment-simulator
+  config:
+    # Same .env as the backend, so both sides share SIM_API_KEY.
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
+  datasource:
+    url: jdbc:h2:mem:simulator;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop       # the schema lives only as long as the process
+  jackson:
+    default-property-inclusion: non_null
+  webservices:
+    path: /ws
+    servlet:
+      init:
+        transformWsdlLocations: true   # the WSDL advertises the host the caller used
+
+server:
+  port: ${SIM_PORT:8090}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+logging:
+  pattern:
+    level: "%5p"
+
+simulator:
+  # No default: the simulator refuses to start without a key of at least 16 characters.
+  api-key: ${SIM_API_KEY}
+  # SLOW_SUCCESS answers after this long. Must exceed the backend's SOAP read timeout (10 s).
+  slow-delay: 15s
+  # SHORT_PAY settles this fraction of the requested amount.
+  short-pay-factor: 0.90

@@ -1,0 +1,3680 @@
+{
+  "components": {
+    "schemas": {
+      "Activity": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseConfigView": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConfigView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseDetail": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Detail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseHealthCheckResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthCheckResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseInvoiceDetailResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InvoiceDetailResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListActivity": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Activity"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListDayCount": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListInvoiceSummaryResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceSummaryResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListPaymentResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListRecordResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RecordResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListRunResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListStatusCount": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StatusCount"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListString": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListSummary": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Summary"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListSupplierResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListSyncHistoryResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SyncHistoryResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListSyncRunResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SyncRunResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseListUserResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/UserResponse"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseLoginResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseMapStringObject": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponsePaymentDetailResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaymentDetailResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponsePaymentResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaymentResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseReconciliationSummary": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSummary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseRecordDetail": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RecordDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseRetryResult": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RetryResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseRunDetail": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RunDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseRunResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RunResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseSettingView": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SettingView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseStatusResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatusResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseSummary": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Summary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseSupplierResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SupplierResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseSyncRunResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SyncRunResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseUserResponse": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Attempt": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "errorDescription": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "logId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CheckResult": {
+        "properties": {
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ConfigView": {
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectionView"
+            },
+            "type": "array"
+          },
+          "secrets": {
+            "items": {
+              "$ref": "#/components/schemas/SecretView"
+            },
+            "type": "array"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/SettingView"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ConnectionView": {
+        "properties": {
+          "connectTimeoutMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readTimeoutMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePaymentRequest": {
+        "properties": {
+          "invoiceId": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "invoiceId"
+        ],
+        "type": "object"
+      },
+      "CreateUserRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 190,
+            "minLength": 0,
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 120,
+            "minLength": 0,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 72,
+            "minLength": 12,
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "enum": [
+                "ADMIN",
+                "FINANCE_MANAGER",
+                "INTEGRATION_OPERATOR"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "email",
+          "fullName",
+          "password",
+          "roles"
+        ],
+        "type": "object"
+      },
+      "DayCount": {
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Detail": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "errorDescription": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoiceId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "paymentTransactionId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestPayload": {
+            "type": "string"
+          },
+          "requestReference": {
+            "type": "string"
+          },
+          "responsePayload": {
+            "type": "string"
+          },
+          "retryOfLogId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FieldComparison": {
+        "properties": {
+          "external": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "internal": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "HealthCheckResponse": {
+        "properties": {
+          "odoo": {
+            "$ref": "#/components/schemas/CheckResult"
+          },
+          "rest": {
+            "$ref": "#/components/schemas/CheckResult"
+          },
+          "soap": {
+            "$ref": "#/components/schemas/CheckResult"
+          }
+        },
+        "type": "object"
+      },
+      "InvoiceDetailResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dueDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoiceDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "invoiceStatus": {
+            "type": "string"
+          },
+          "lastSyncedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "odooMoveId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "odooPaymentState": {
+            "type": "string"
+          },
+          "odooWriteDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payments": {
+            "items": {
+              "$ref": "#/components/schemas/InvoicePaymentSummary"
+            },
+            "type": "array"
+          },
+          "poReference": {
+            "type": "string"
+          },
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierResponse"
+          },
+          "syncStatus": {
+            "type": "string"
+          },
+          "taxAmount": {
+            "type": "number"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "untaxedAmount": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "vendorReference": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InvoicePaymentSummary": {
+        "properties": {
+          "attemptCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "processedAmount": {
+            "type": "number"
+          },
+          "requestedAmount": {
+            "type": "number"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "respondedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transactionReference": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "InvoiceSummaryResponse": {
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "dueDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoiceDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "invoiceStatus": {
+            "type": "string"
+          },
+          "supplierId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "syncStatus": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "LastError": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 190,
+            "minLength": 0,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 72,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "LoginResponse": {
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "type": "object"
+      },
+      "OdooStatus": {
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "database": {
+            "type": "string"
+          },
+          "lastCallAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastError": {
+            "$ref": "#/components/schemas/LastError"
+          },
+          "lastSync": {
+            "$ref": "#/components/schemas/SyncRunResponse"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PageMeta": {
+        "properties": {
+          "page": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PaymentDetailResponse": {
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/Attempt"
+            },
+            "type": "array"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentResponse"
+          }
+        },
+        "type": "object"
+      },
+      "PaymentResponse": {
+        "properties": {
+          "attemptCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "externalTransactionId": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "initiatedBy": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoiceId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "lastAttemptAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "processedAmount": {
+            "type": "number"
+          },
+          "requestedAmount": {
+            "type": "number"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "respondedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supplierId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "transactionReference": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReconciliationSummary": {
+        "properties": {
+          "byReviewStatus": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "byStatus": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "periodFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "periodTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "runId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "runStatus": {
+            "type": "string"
+          },
+          "totalRecords": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RecordDetail": {
+        "properties": {
+          "comparison": {
+            "items": {
+              "$ref": "#/components/schemas/FieldComparison"
+            },
+            "type": "array"
+          },
+          "record": {
+            "$ref": "#/components/schemas/RecordResponse"
+          },
+          "reviewNote": {
+            "type": "string"
+          },
+          "reviewedBy": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RecordResponse": {
+        "properties": {
+          "actualAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "discrepancyDescription": {
+            "type": "string"
+          },
+          "expectedAmount": {
+            "type": "number"
+          },
+          "externalTransactionReference": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "internalTransactionReference": {
+            "type": "string"
+          },
+          "invoiceId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentTransactionId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reconciledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reviewStatus": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "runId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ResetPasswordRequest": {
+        "properties": {
+          "newPassword": {
+            "maxLength": 72,
+            "minLength": 12,
+            "type": "string"
+          }
+        },
+        "required": [
+          "newPassword"
+        ],
+        "type": "object"
+      },
+      "RetryResult": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "paymentId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentStatus": {
+            "type": "string"
+          },
+          "syncRunId": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReviewRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "reviewStatus": {
+            "enum": [
+              "NOT_REQUIRED",
+              "OPEN",
+              "RESOLVED",
+              "NEEDS_INVESTIGATION"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "note",
+          "reviewStatus"
+        ],
+        "type": "object"
+      },
+      "RunDetail": {
+        "properties": {
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/SyncHistoryResponse"
+            },
+            "type": "array"
+          },
+          "run": {
+            "$ref": "#/components/schemas/SyncRunResponse"
+          }
+        },
+        "type": "object"
+      },
+      "RunRequest": {
+        "properties": {
+          "periodFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "periodTo": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "periodFrom",
+          "periodTo"
+        ],
+        "type": "object"
+      },
+      "RunResponse": {
+        "properties": {
+          "countsByStatus": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "discrepancyCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "matchedCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "periodFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "periodTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "totalRecords": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "triggeredBy": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SecretView": {
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServiceStatus": {
+        "properties": {
+          "lastCallAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastError": {
+            "$ref": "#/components/schemas/LastError"
+          },
+          "state": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SettingView": {
+        "properties": {
+          "defaultValue": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "max": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "min": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "overridden": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StartRequest": {
+        "properties": {
+          "fullResync": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "StatusCount": {
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestedAmount": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StatusResponse": {
+        "properties": {
+          "odoo": {
+            "$ref": "#/components/schemas/OdooStatus"
+          },
+          "rest": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "soap": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          }
+        },
+        "type": "object"
+      },
+      "Summary": {
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "requestReference": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SupplierResponse": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "odooPartnerId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "odooWriteDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "taxId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SyncHistoryResponse": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "odooRecordId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "syncRunId": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SyncRunResponse": {
+        "properties": {
+          "cursorFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cursorTo": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invoicesCreated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "invoicesRejected": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "invoicesUnchanged": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "invoicesUpdated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "suppliersUpserted": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "triggerType": {
+            "type": "string"
+          },
+          "triggeredBy": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateRequest": {
+        "properties": {
+          "value": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "UpdateRolesRequest": {
+        "properties": {
+          "roles": {
+            "items": {
+              "enum": [
+                "ADMIN",
+                "FINANCE_MANAGER",
+                "INTEGRATION_OPERATOR"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "roles"
+        ],
+        "type": "object"
+      },
+      "UpdateUserRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "fullName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UserResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastLoginAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lockedUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Finance Systems Integration Platform. Log in with POST /api/auth/login, then use Authorize with the access token.",
+    "title": "FinBridge API",
+    "version": "0.7.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "Log in and receive an access token",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "The logged-in user and their roles",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            },
+            "description": "Created"
+          }
+        },
+        "summary": "Create a user (ADMIN only; there is no public sign-up)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/dashboard/invoice-trend": {
+      "get": {
+        "operationId": "invoiceTrend",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListDayCount"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/api/dashboard/recent-activity": {
+      "get": {
+        "operationId": "recentActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListActivity"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/api/dashboard/reconciliation-summary": {
+      "get": {
+        "operationId": "reconciliationSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseReconciliationSummary"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/api/dashboard/summary": {
+      "get": {
+        "operationId": "summary",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSummary"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/api/dashboard/transactions": {
+      "get": {
+        "operationId": "transactions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListStatusCount"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/api/integrations/config": {
+      "get": {
+        "operationId": "get_5",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseConfigView"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/integrations/config/{key}": {
+      "put": {
+        "operationId": "update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettingView"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Change one setting; it applies from the next sync run or payment retry",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/integrations/health-check": {
+      "post": {
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHealthCheckResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Call Odoo now and report the result",
+        "tags": [
+          "Integration monitoring"
+        ]
+      }
+    },
+    "/api/integrations/logs": {
+      "get": {
+        "operationId": "logs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ODOO",
+                "REST",
+                "SOAP"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome",
+            "required": false,
+            "schema": {
+              "enum": [
+                "SUCCESS",
+                "FAILURE",
+                "TIMEOUT"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "correlationId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSummary"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Integration monitoring"
+        ]
+      }
+    },
+    "/api/integrations/logs/{id}": {
+      "get": {
+        "operationId": "log",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseDetail"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Integration monitoring"
+        ]
+      }
+    },
+    "/api/integrations/logs/{id}/retry": {
+      "post": {
+        "description": "Starts the business operation the entry belongs to (a sync run, the payment's own retry or status check, or a health check). The stored request is never replayed. 422 if the entry succeeded or is not retryable.",
+        "operationId": "retry_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRetryResult"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Run again the operation behind a retryable failed log entry",
+        "tags": [
+          "Integration monitoring"
+        ]
+      }
+    },
+    "/api/integrations/odoo/sync": {
+      "post": {
+        "description": "Returns 202 with the run; poll GET /api/integrations/odoo/sync-runs/{id} until its status is no longer RUNNING. 409 if a run is already in progress.",
+        "operationId": "start_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSyncRunResponse"
+                }
+              }
+            },
+            "description": "Accepted"
+          }
+        },
+        "summary": "Start a synchronization run",
+        "tags": [
+          "Odoo synchronization"
+        ]
+      }
+    },
+    "/api/integrations/odoo/sync-runs": {
+      "get": {
+        "operationId": "list_4",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSyncRunResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Odoo synchronization"
+        ]
+      }
+    },
+    "/api/integrations/odoo/sync-runs/{id}": {
+      "get": {
+        "operationId": "get_4",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRunDetail"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Odoo synchronization"
+        ]
+      }
+    },
+    "/api/integrations/status": {
+      "get": {
+        "operationId": "status_1",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStatusResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Stored status of each integration; makes no outbound call",
+        "tags": [
+          "Integration monitoring"
+        ]
+      }
+    },
+    "/api/invoices": {
+      "get": {
+        "operationId": "list_3",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "invoiceNumber",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "supplierId",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "OPEN",
+                "PAYMENT_IN_PROGRESS",
+                "PAID",
+                "PAYMENT_FAILED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syncStatus",
+            "required": false,
+            "schema": {
+              "enum": [
+                "SYNCED",
+                "UPDATED",
+                "STALE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListInvoiceSummaryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/invoices/sync": {
+      "post": {
+        "description": "Returns 202 with the run; poll GET /api/integrations/odoo/sync-runs/{id} until its status is no longer RUNNING. 409 if a run is already in progress.",
+        "operationId": "start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSyncRunResponse"
+                }
+              }
+            },
+            "description": "Accepted"
+          }
+        },
+        "summary": "Start a synchronization run",
+        "tags": [
+          "Odoo synchronization"
+        ]
+      }
+    },
+    "/api/invoices/{id}": {
+      "get": {
+        "operationId": "get_3",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInvoiceDetailResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/invoices/{id}/history": {
+      "get": {
+        "operationId": "history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSyncHistoryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Invoices"
+        ]
+      }
+    },
+    "/api/payments": {
+      "get": {
+        "operationId": "list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "CREATED",
+                "SENT",
+                "SUCCESS",
+                "PENDING",
+                "FAILED",
+                "REJECTED",
+                "TIMEOUT_UNKNOWN"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "invoiceId",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "supplierId",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPaymentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Payments"
+        ]
+      },
+      "post": {
+        "description": "Needs an Idempotency-Key header (generate one UUID per payment intention). 201 with the transaction in whatever state the payment service left it, including FAILED and TIMEOUT_UNKNOWN. Sending the same key and body again returns the same transaction (header Idempotent-Replay: true) and sends nothing. 409 if the invoice already has a successful or in-progress payment, or the key was used for another invoice.",
+        "operationId": "create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaymentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Pay an invoice in full",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "operationId": "get_2",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaymentDetailResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "The transaction with every call made to the payment service for it",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/payments/{id}/retry": {
+      "post": {
+        "description": "FAILED: a new attempt, up to the attempt limit. TIMEOUT_UNKNOWN: a status inquiry first; the request is sent again only if the payment service never received it.",
+        "operationId": "retry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaymentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Send a FAILED payment again, or resolve a TIMEOUT_UNKNOWN one by inquiry",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/payments/{id}/status": {
+      "get": {
+        "operationId": "status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "The stored status only; makes no outbound call",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/payments/{id}/status-check": {
+      "post": {
+        "description": "A POST because it can change the transaction. 422 in any other status; 502 or 504 if the inquiry itself fails, in which case nothing changes.",
+        "operationId": "statusCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaymentResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Ask the payment service what happened (PENDING and TIMEOUT_UNKNOWN only)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/reconciliation": {
+      "get": {
+        "operationId": "records",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "runId",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "MATCHED",
+                "MISMATCH",
+                "MISSING_EXTERNAL_RECORD",
+                "MISSING_INTERNAL_RECORD",
+                "DUPLICATE",
+                "PENDING_REVIEW"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewStatus",
+            "required": false,
+            "schema": {
+              "enum": [
+                "NOT_REQUIRED",
+                "OPEN",
+                "RESOLVED",
+                "NEEDS_INVESTIGATION"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "invoiceId",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRecordResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Records of a run (the latest run when runId is left out)",
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/reconciliation/run": {
+      "post": {
+        "description": "Returns 202 with the run; poll GET /api/reconciliation/runs/{id} until its status is COMPLETED or FAILED.",
+        "operationId": "run",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRunResponse"
+                }
+              }
+            },
+            "description": "Accepted"
+          }
+        },
+        "summary": "Reconcile a period (dates are UTC, both inclusive)",
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/reconciliation/runs": {
+      "get": {
+        "operationId": "runs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListRunResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/reconciliation/runs/{id}": {
+      "get": {
+        "operationId": "run_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRunResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "One run with its counts per reconciliation status",
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/reconciliation/{id}": {
+      "get": {
+        "operationId": "record",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecordDetail"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "One record with FinBridge's side and the payment service's side, field by field",
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/reconciliation/{id}/review": {
+      "patch": {
+        "description": "RESOLVED or NEEDS_INVESTIGATION, with a note. Changes only the record: no invoice and no payment is touched. 422 for a MATCHED record.",
+        "operationId": "review",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecordDetail"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Record a decision on a discrepancy",
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "operationId": "roles",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListString"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      }
+    },
+    "/api/suppliers": {
+      "get": {
+        "operationId": "list_2",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSupplierResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/suppliers/{id}": {
+      "get": {
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSupplierResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/users": {
+      "get": {
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ADMIN",
+                "FINANCE_MANAGER",
+                "INTEGRATION_OPERATOR"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "enabled",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "operationId": "get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      },
+      "patch": {
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      }
+    },
+    "/api/users/{id}/reset-password": {
+      "post": {
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      }
+    },
+    "/api/users/{id}/roles": {
+      "put": {
+        "operationId": "replaceRoles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRolesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Users and roles"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "Generated server url",
+      "url": "http://localhost:8081"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Pay an invoice through the SOAP payment service and follow the transaction",
+      "name": "Payments"
+    },
+    {
+      "description": "Compare FinBridge's payments with the payment service's statement and review the differences",
+      "name": "Reconciliation"
+    },
+    {
+      "description": "Connection status, live health checks and the integration log",
+      "name": "Integration monitoring"
+    },
+    {
+      "description": "Non-secret integration settings. Secrets are shown only as configured or missing",
+      "name": "Settings"
+    },
+    {
+      "description": "Read-only figures computed from live data",
+      "name": "Dashboard"
+    },
+    {
+      "description": "Start a run and inspect what each run did",
+      "name": "Odoo synchronization"
+    },
+    {
+      "description": "Read-only. Invoices are created by Odoo synchronization",
+      "name": "Invoices"
+    },
+    {
+      "description": "ADMIN only",
+      "name": "Users and roles"
+    },
+    {
+      "description": "Read-only. Suppliers are created by Odoo synchronization",
+      "name": "Suppliers"
+    }
+  ]
+}

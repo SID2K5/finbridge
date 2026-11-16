@@ -1,0 +1,150 @@
+# The stack as it runs on ONE EC2 instance, for the free-tier deployment.
+#
+# Differences from the repository's docker-compose.yml:
+#   - the three application images come from ECR instead of being built here
+#   - every container has a memory limit, because the whole system shares 2 GB
+#   - only port 80 is meant for the public; the other ports are for you, and the
+#     security group decides who may reach them
+#   - Odoo runs in threaded mode with its own memory limits, so it is capped twice
+#
+# free.sh uploads this file to SSM Parameter Store with __REGISTRY__ and __TAG__
+# replaced. The instance fetches it at boot. Do not edit it on the instance: the next
+# "free.sh deploy" overwrites it.
+name: finbridge
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: finbridge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --innodb-buffer-pool-size=96M
+      - --performance-schema=OFF
+      - --max-connections=40
+    volumes:
+      - finbridge-mysql-data:/var/lib/mysql
+    mem_limit: 420m
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+
+  odoo-db:
+    image: postgres:16
+    container_name: finbridge-odoo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${ODOO_PG_PASSWORD}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=48MB
+      - -c
+      - max_connections=40
+    volumes:
+      - finbridge-odoo-db-data:/var/lib/postgresql/data
+    mem_limit: 180m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  odoo:
+    image: odoo:19.0
+    container_name: finbridge-odoo
+    restart: unless-stopped
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    # workers=0 is threaded mode: one process instead of several, which is what fits here.
+    # Odoo's own soft and hard limits sit below the container limit, so it recycles its
+    # worker itself instead of being killed by the kernel.
+    command:
+      - odoo
+      - --database=${ODOO_DB:-finbridge}
+      - --no-database-list
+      - --workers=0
+      - --limit-memory-soft=419430400
+      - --limit-memory-hard=503316480
+    environment:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: ${ODOO_PG_PASSWORD}
+    ports:
+      - "8069:8069"
+    volumes:
+      - finbridge-odoo-data:/var/lib/odoo
+    mem_limit: 620m
+
+  simulator:
+    image: __REGISTRY__/__PROJECT__-simulator:__TAG__
+    container_name: finbridge-simulator
+    restart: unless-stopped
+    environment:
+      SIM_PORT: 8090
+      SIM_API_KEY: ${SIM_API_KEY}
+    ports:
+      - "8090:8090"
+    mem_limit: 240m
+
+  backend:
+    image: __REGISTRY__/__PROJECT__-backend:__TAG__
+    container_name: finbridge-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE:-prod}
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME}?connectionTimeZone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-System Administrator}
+      ODOO_URL: http://odoo:8069
+      ODOO_DB: ${ODOO_DB:-finbridge}
+      ODOO_API_KEY: ${ODOO_API_KEY:-}
+      PAYMENT_WS_URL: http://simulator:8090/ws
+      SIM_URL: http://simulator:8090
+      SIM_API_KEY: ${SIM_API_KEY}
+    ports:
+      - "8081:8080"
+    mem_limit: 400m
+
+  frontend:
+    image: __REGISTRY__/__PROJECT__-frontend:__TAG__
+    container_name: finbridge-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "80:8080"
+    mem_limit: 48m
+
+volumes:
+  finbridge-mysql-data:
+  finbridge-odoo-db-data:
+  finbridge-odoo-data:

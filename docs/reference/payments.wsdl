@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:sch="http://finbridge.com/payments/v1" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://finbridge.com/payments/v1" targetNamespace="http://finbridge.com/payments/v1">
+  <wsdl:types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://finbridge.com/payments/v1">
+
+    <!-- ===== simple types ===== -->
+
+    <xs:simpleType name="TransactionReferenceType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="40"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReferenceType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="64"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CurrencyType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Money: exact decimal, at most 4 fraction digits, never a float. -->
+    <xs:simpleType name="AmountType">
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="19"/>
+            <xs:fractionDigits value="4"/>
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PositiveAmountType">
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="19"/>
+            <xs:fractionDigits value="4"/>
+            <xs:minExclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PaymentStatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SUCCESS"/>
+            <xs:enumeration value="PENDING"/>
+            <xs:enumeration value="FAILED"/>
+            <xs:enumeration value="REJECTED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== complex types ===== -->
+
+    <!-- The outcome of one payment, as returned by submit and by status inquiry. -->
+    <xs:complexType name="PaymentResultType">
+        <xs:sequence>
+            <xs:element name="ExternalTransactionId" type="tns:ReferenceType"/>
+            <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+            <xs:element name="InvoiceReference" type="tns:ReferenceType"/>
+            <xs:element name="ProcessedAmount" type="tns:AmountType"/>
+            <xs:element name="Currency" type="tns:CurrencyType"/>
+            <xs:element name="PaymentStatus" type="tns:PaymentStatusType"/>
+            <xs:element name="ResponseTimestamp" type="xs:dateTime"/>
+            <xs:element minOccurs="0" name="FailureReason" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- One line of the settlement statement: a payment result plus the supplier it was paid to. -->
+    <xs:complexType name="StatementEntryType">
+        <xs:complexContent>
+            <xs:extension base="tns:PaymentResultType">
+                <xs:sequence>
+                    <xs:element name="SupplierReference" type="tns:ReferenceType"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ===== operation: SubmitPayment ===== -->
+
+    <xs:element name="SubmitPaymentRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+                <xs:element name="InvoiceReference" type="tns:ReferenceType"/>
+                <xs:element name="SupplierReference" type="tns:ReferenceType"/>
+                <xs:element name="RequestedAmount" type="tns:PositiveAmountType"/>
+                <xs:element name="Currency" type="tns:CurrencyType"/>
+                <xs:element name="RequestTimestamp" type="xs:dateTime"/>
+                <xs:element name="IdempotencyKey" type="tns:ReferenceType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="SubmitPaymentResponse" type="tns:PaymentResultType"/>
+
+    <!-- ===== operation: GetPaymentStatus ===== -->
+
+    <xs:element name="GetPaymentStatusRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetPaymentStatusResponse" type="tns:PaymentResultType"/>
+
+    <!-- ===== operation: GetSettlementStatement ===== -->
+
+    <xs:element name="GetSettlementStatementRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="FromDate" type="xs:date"/>
+                <xs:element name="ToDate" type="xs:date"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetSettlementStatementResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" minOccurs="0" name="Entry" type="tns:StatementEntryType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!--
+      ===== fault detail =====
+      Carried inside <detail> of a SOAP fault. Business outcomes (FAILED, REJECTED) are normal
+      responses; a fault means the request could not be processed at all.
+        Client / INVALID_REQUEST        schema validation failed
+        Client / IDEMPOTENCY_CONFLICT   same key or reference, different payload
+        Client / UNKNOWN_TRANSACTION    status inquiry for a reference never received
+        Server / SERVICE_UNAVAILABLE    outage; nothing was recorded
+    -->
+    <xs:element name="PaymentFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ErrorCode" type="xs:string"/>
+                <xs:element name="Message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="SubmitPaymentResponse">
+    <wsdl:part element="tns:SubmitPaymentResponse" name="SubmitPaymentResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetSettlementStatementRequest">
+    <wsdl:part element="tns:GetSettlementStatementRequest" name="GetSettlementStatementRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="PaymentFault">
+    <wsdl:part element="tns:PaymentFault" name="PaymentFault">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetSettlementStatementResponse">
+    <wsdl:part element="tns:GetSettlementStatementResponse" name="GetSettlementStatementResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetPaymentStatusResponse">
+    <wsdl:part element="tns:GetPaymentStatusResponse" name="GetPaymentStatusResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="SubmitPaymentRequest">
+    <wsdl:part element="tns:SubmitPaymentRequest" name="SubmitPaymentRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="GetPaymentStatusRequest">
+    <wsdl:part element="tns:GetPaymentStatusRequest" name="GetPaymentStatusRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="PaymentsPort">
+    <wsdl:operation name="SubmitPayment">
+      <wsdl:input message="tns:SubmitPaymentRequest" name="SubmitPaymentRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:SubmitPaymentResponse" name="SubmitPaymentResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetSettlementStatement">
+      <wsdl:input message="tns:GetSettlementStatementRequest" name="GetSettlementStatementRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:GetSettlementStatementResponse" name="GetSettlementStatementResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Payment">
+      <wsdl:fault message="tns:PaymentFault" name="PaymentFault">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetPaymentStatus">
+      <wsdl:input message="tns:GetPaymentStatusRequest" name="GetPaymentStatusRequest">
+    </wsdl:input>
+      <wsdl:output message="tns:GetPaymentStatusResponse" name="GetPaymentStatusResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="PaymentsPortSoap11" type="tns:PaymentsPort">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="SubmitPayment">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="SubmitPaymentRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="SubmitPaymentResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetSettlementStatement">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="GetSettlementStatementRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="GetSettlementStatementResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Payment">
+      <soap:operation soapAction=""/>
+      <wsdl:fault name="PaymentFault">
+        <soap:fault name="PaymentFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetPaymentStatus">
+      <soap:operation soapAction=""/>
+      <wsdl:input name="GetPaymentStatusRequest">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="GetPaymentStatusResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="PaymentsPortService">
+    <wsdl:port binding="tns:PaymentsPortSoap11" name="PaymentsPortSoap11">
+      <soap:address location="http://localhost:8090/ws"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

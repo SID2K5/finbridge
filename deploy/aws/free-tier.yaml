@@ -1,0 +1,338 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  FinBridge on one EC2 instance: the whole Docker Compose stack (MySQL, Odoo and its
+  PostgreSQL, backend, payment simulator, frontend) on a single host. Written for an AWS
+  account on the Free plan, where credits pay for usage: no Fargate, no load balancer, no
+  RDS and no NAT gateway, because none of those is free. The instance is meant to be
+  stopped between demos; only its EBS volume is billed while it is stopped.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: finbridge
+    Description: Prefix for the names of everything this stack creates.
+
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: >
+      t3.small (2 GB) holds the whole stack with a swap file and is what the memory limits
+      in the Compose file are written for. t3.micro (1 GB) is NOT enough for Odoo as well.
+      Move to t3.medium (4 GB) if Odoo is slow or a container is killed.
+
+  VolumeSizeGb:
+    Type: Number
+    Default: 20
+    MinValue: 12
+    MaxValue: 100
+    Description: >
+      Root volume in GB. This is the one thing billed while the instance is stopped
+      (about 0.10 USD per GB per month in ap-southeast-2).
+
+  PublicCidr:
+    Type: String
+    Default: 0.0.0.0/0
+    AllowedPattern: ^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$
+    Description: >
+      Who may reach the dashboard on port 80. 0.0.0.0/0 is the whole internet, which is
+      what a demo you send a link to needs. Narrow it to your own address if you can.
+
+  AdminCidr:
+    Type: String
+    Default: 127.0.0.1/32
+    AllowedPattern: ^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$
+    Description: >
+      Who may reach Odoo (8069), the backend directly (8081) and the simulator (8090).
+      Leave it at 127.0.0.1/32 to allow nobody from the internet and reach them through
+      Session Manager port forwarding instead, which is the safer path.
+
+  LatestAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+    Description: Amazon Linux 2023, resolved at deploy time. Do not change.
+
+Conditions:
+  AdminAccessOpen: !Not [!Equals [!Ref AdminCidr, 127.0.0.1/32]]
+
+Resources:
+  # --------------------------------------------------------------------------- network
+  # One public subnet. Everything talks to everything else inside one Docker network on
+  # the host, so there is nothing to put in a private subnet and no NAT gateway to pay for.
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.60.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free'}]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free'}]
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.60.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free-public'}]
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free-public'}]
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # --------------------------------------------------------------------------- firewall
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FinBridge single-host stack
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - Description: The dashboard
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref PublicCidr
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free'}]
+
+  # There is no SSH rule at all and no key pair: you reach the instance with Session
+  # Manager, which needs no open port. The three rules below exist only if you widened
+  # AdminCidr yourself.
+  OdooRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AdminAccessOpen
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      Description: Odoo web interface, for creating vendors and bills
+      IpProtocol: tcp
+      FromPort: 8069
+      ToPort: 8069
+      CidrIp: !Ref AdminCidr
+
+  BackendRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AdminAccessOpen
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      Description: The backend directly, for Swagger UI and Postman
+      IpProtocol: tcp
+      FromPort: 8081
+      ToPort: 8081
+      CidrIp: !Ref AdminCidr
+
+  SimulatorRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AdminAccessOpen
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      Description: The payment simulator, for SoapUI and the scenario calls
+      IpProtocol: tcp
+      FromPort: 8090
+      ToPort: 8090
+      CidrIp: !Ref AdminCidr
+
+  # --------------------------------------------------------------------------- identity
+  # The instance may read its own two parameters and pull its own three images. Nothing
+  # else. No access key exists anywhere.
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: finbridge-instance
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadItsOwnConfiguration
+                Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters]
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/*'
+              - Sid: DecryptThatConfiguration
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+              - Sid: LogInToEcr
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: '*'
+              - Sid: PullItsOwnImages
+                Effect: Allow
+                Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer, ecr:BatchCheckLayerAvailability]
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ProjectName}-backend'
+                  - !Sub 'arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ProjectName}-simulator'
+                  - !Sub 'arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ProjectName}-frontend'
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  # --------------------------------------------------------------------------- the host
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmi
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref InstanceSecurityGroup]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref VolumeSizeGb
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags: [{Key: Name, Value: !Sub '${ProjectName}-free'}]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # First boot. Progress and errors: /var/log/finbridge-bootstrap.log
+          set -uxo pipefail
+          exec > >(tee -a /var/log/finbridge-bootstrap.log) 2>&1
+          PROJECT="${ProjectName}"
+          REGION="${AWS::Region}"
+
+          echo "=== packages"
+          dnf -y install docker
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -sSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64" \
+               -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          systemctl enable --now docker
+
+          echo "=== swap, because the memory limits add up to more than this instance has"
+          if [ ! -f /swapfile ]; then
+              dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+              chmod 600 /swapfile
+              mkswap /swapfile
+              echo "/swapfile none swap sw 0 0" >> /etc/fstab
+          fi
+          swapon -a || true
+          sysctl -w vm.swappiness=10
+
+          echo "=== configuration from Parameter Store"
+          install -d -m 0750 /opt/finbridge
+          aws ssm get-parameter --region "$REGION" --name "/$PROJECT/env" \
+              --with-decryption --query Parameter.Value --output text > /opt/finbridge/.env
+          chmod 0600 /opt/finbridge/.env
+          aws ssm get-parameter --region "$REGION" --name "/$PROJECT/compose" \
+              --query Parameter.Value --output text > /opt/finbridge/docker-compose.yml
+
+          echo "=== a unit, so the stack comes back after a stop and a start"
+          cat > /usr/local/bin/finbridge-up <<SCRIPT
+          #!/bin/bash
+          set -uxo pipefail
+          ACCOUNT="\$(aws sts get-caller-identity --query Account --output text)"
+          aws ecr get-login-password --region $REGION \
+              | docker login --username AWS --password-stdin "\$ACCOUNT.dkr.ecr.$REGION.amazonaws.com"
+          cd /opt/finbridge
+          docker compose --env-file .env up -d
+          SCRIPT
+          chmod +x /usr/local/bin/finbridge-up
+
+          cat > /etc/systemd/system/finbridge.service <<UNIT
+          [Unit]
+          Description=FinBridge stack
+          After=docker.service network-online.target
+          Requires=docker.service
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/local/bin/finbridge-up
+          TimeoutStartSec=0
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          systemctl daemon-reload
+          systemctl enable finbridge.service
+
+          echo "=== pull and start"
+          /usr/local/bin/finbridge-up
+
+          cd /opt/finbridge
+          # Tracing off from here: these values are secrets, and this log is readable with
+          # "free.sh logs".
+          set +x
+          ODOO_DB="$(grep '^ODOO_DB=' .env | cut -d= -f2-)"
+          ODOO_DB="${!ODOO_DB:-$PROJECT}"
+          PG_PW="$(grep '^ODOO_PG_PASSWORD=' .env | cut -d= -f2-)"
+
+          # Odoo creates the database named by --database by itself when it starts, but that
+          # database holds only "base": no account.move, so nothing to synchronize. The test
+          # is therefore whether the modules are installed, NOT whether the database exists.
+          echo "=== Odoo modules in $ODOO_DB, installed once"
+          if ! docker compose --env-file .env exec -T odoo-db \
+                  psql -U odoo -d "$ODOO_DB" -tAc "select 1 from ir_module_module where name = 'account' and state = 'installed'" 2>/dev/null | grep -q 1; then
+              docker compose --env-file .env stop odoo
+              docker compose --env-file .env run --rm --no-deps odoo \
+                  odoo -d "$ODOO_DB" -i account,purchase --stop-after-init --without-demo=True
+              docker compose --env-file .env up -d odoo
+              sleep 30
+              # Odoo's first administrator is admin/admin. Replace that password at once with
+              # the one from .env, before the page is reachable by anybody.
+              ADMIN_PW="$(grep '^ODOO_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
+              printf 'u = env["res.users"].browse(2)\nu.password = """%s"""\nenv.cr.commit()\nprint("INFO password set for", u.login)\n' "$ADMIN_PW" \
+                  | docker compose --env-file .env exec -T odoo \
+                        odoo shell -d "$ODOO_DB" --db_host=odoo-db --db_user=odoo --db_password="$PG_PW" \
+                        --no-http --log-level=warn
+          fi
+          unset ADMIN_PW PG_PW
+          set -x
+
+          echo "=== done"
+          docker compose --env-file .env ps
+
+Outputs:
+  InstanceId:
+    Description: Used by free.sh start, stop and status.
+    Value: !Ref Instance
+  PublicIp:
+    Description: >
+      The address right now. It CHANGES every time the instance is stopped and started
+      again, because there is no Elastic IP: an idle one is billed, an auto-assigned one
+      is not. Ask "free.sh status" for the current address.
+    Value: !GetAtt Instance.PublicIp
+  Url:
+    Description: The dashboard.
+    Value: !Sub 'http://${Instance.PublicIp}'
+  OdooUrl:
+    Description: Odoo, if you widened AdminCidr. Otherwise reach it through Session Manager.
+    Value: !Sub 'http://${Instance.PublicIp}:8069'

@@ -1,0 +1,143 @@
+# Local development stack.
+#
+#   mysql                         FinBridge's own database
+#   odoo, odoo-db                 Odoo 19 Community and its private PostgreSQL
+#   backend, simulator, frontend  the three FinBridge applications, built from this repository
+#                                 (profile "app": started only when you ask for them)
+#
+# Infrastructure only, applications run from Maven and npm (the everyday setup):
+#   docker compose up -d mysql odoo
+#
+# Everything in containers, as it will run in the cloud:
+#   docker compose --profile app up -d --build
+#   then open http://localhost:8088
+name: finbridge
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: finbridge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - finbridge-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # Odoo's private store. FinBridge never connects to it, and it has no host port.
+  odoo-db:
+    image: postgres:16
+    container_name: finbridge-odoo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${ODOO_PG_PASSWORD}
+    volumes:
+      - finbridge-odoo-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  odoo:
+    image: odoo:19.0
+    container_name: finbridge-odoo
+    restart: unless-stopped
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    # One fixed database and no database manager page: nobody can create, copy or drop
+    # databases from the browser, so no Odoo master password is needed.
+    command: ["odoo", "--database", "${ODOO_DB:-finbridge}", "--no-database-list"]
+    environment:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: ${ODOO_PG_PASSWORD}
+    ports:
+      - "${ODOO_PORT:-8069}:8069"
+    volumes:
+      - finbridge-odoo-data:/var/lib/odoo
+
+  # ---------------------------------------------------------------------------------------
+  # The applications. Inside the Compose network they find each other by service name.
+  # ---------------------------------------------------------------------------------------
+
+  simulator:
+    profiles: ["app"]
+    build: ./payment-simulator
+    image: finbridge-simulator:local
+    container_name: finbridge-simulator
+    restart: unless-stopped
+    environment:
+      SIM_PORT: 8090
+      SIM_API_KEY: ${SIM_API_KEY}
+    ports:
+      - "${SIM_PORT:-8090}:8090"      # published so that SoapUI and the scenario calls reach it
+
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    image: finbridge-backend:local
+    container_name: finbridge-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE:-dev}
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://mysql:3306/${DB_NAME}?connectionTimeZone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-8088}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-System Administrator}
+      ODOO_URL: http://odoo:8069
+      ODOO_DB: ${ODOO_DB:-finbridge}
+      ODOO_API_KEY: ${ODOO_API_KEY:-}
+      PAYMENT_WS_URL: http://simulator:8090/ws
+      SIM_URL: http://simulator:8090
+      SIM_API_KEY: ${SIM_API_KEY}
+    ports:
+      - "${BACKEND_PORT:-8081}:8080"   # published for Swagger UI and direct API calls
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    image: finbridge-frontend:local
+    container_name: finbridge-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080    # nginx forwards /api here, so the browser sees one origin
+    ports:
+      - "${FRONTEND_PORT:-8088}:8080"
+
+volumes:
+  finbridge-mysql-data:
+  finbridge-odoo-db-data:
+  finbridge-odoo-data:

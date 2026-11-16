@@ -1,0 +1,9 @@
+# Production (AWS): no seed data, Swagger behind login, JSON logs for CloudWatch.
+logging:
+  structured:
+    format:
+      console: ecs
+
+finbridge:
+  security:
+    public-api-docs: false

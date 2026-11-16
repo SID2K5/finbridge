@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project name="FinBridge payments" resourceRoot="" soapui-version="5.7.0" xmlns:con="http://eviware.com/soapui/config">
+  <con:description>Requests against the FinBridge payment simulator (SOAP 1.1). Start the simulator first; SoapUI loads the WSDL from http://localhost:8090/ws/payments.wsdl when the project opens. Each request's description says what to expect. See docs/soap.md.</con:description>
+  <con:settings/>
+  <con:interface xsi:type="con:WsdlInterface" wsaVersion="NONE" name="PaymentsPortSoap11" type="wsdl" bindingName="{http://finbridge.com/payments/v1}PaymentsPortSoap11" soapVersion="1_1" anonymous="optional" definition="http://localhost:8090/ws/payments.wsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <con:settings/>
+    <con:endpoints><con:endpoint>http://localhost:8090/ws</con:endpoint></con:endpoints>
+    <con:operation isOneWay="false" action="" name="SubmitPayment" bindingOperationName="SubmitPayment" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional">
+      <con:settings/>
+      <con:call name="1 Success">
+        <con:description>Expect PaymentStatus SUCCESS and a ProcessedAmount of 50000.0000.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0001</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/0001</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>50000.0000</pay:RequestedAmount>
+         <pay:Currency>INR</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0001</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="2 Same request again (idempotent replay)">
+        <con:description>Send request 1 first. Expect the same ExternalTransactionId and ResponseTimestamp as request 1: nothing new was created.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0001</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/0001</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>50000.0000</pay:RequestedAmount>
+         <pay:Currency>INR</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0001</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="3 Same key, different amount (conflict)">
+        <con:description>Send request 1 first. Expect a Client fault with ErrorCode IDEMPOTENCY_CONFLICT.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0001</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/0001</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>60000.0000</pay:RequestedAmount>
+         <pay:Currency>INR</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0001</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="4 Negative amount (schema violation)">
+        <con:description>Expect a Client fault with ErrorCode INVALID_REQUEST. The endpoint is never called.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0004</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/0004</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>-5.00</pay:RequestedAmount>
+         <pay:Currency>INR</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0004</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="5 Bad currency (schema violation)">
+        <con:description>Expect a Client fault with ErrorCode INVALID_REQUEST.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0005</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/0005</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>5.00</pay:RequestedAmount>
+         <pay:Currency>rupees</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0005</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="6 Scenario FAILED">
+        <con:description>First set the scenario: PUT http://localhost:8090/sim/scenarios/SOAPUI/BILL/FAILED with header X-Sim-Api-Key and body {"scenario":"FAILED"}. Expect HTTP 200 (a business failure is not a fault) with PaymentStatus FAILED and FailureReason PROCESSING_ERROR. Without the scenario you get SUCCESS.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:SubmitPaymentRequest>
+         <pay:TransactionReference>FB-SOAPUI-0006</pay:TransactionReference>
+         <pay:InvoiceReference>SOAPUI/BILL/FAILED</pay:InvoiceReference>
+         <pay:SupplierReference>SUP-42</pay:SupplierReference>
+         <pay:RequestedAmount>700.00</pay:RequestedAmount>
+         <pay:Currency>INR</pay:Currency>
+         <pay:RequestTimestamp>2026-11-13T09:30:00Z</pay:RequestTimestamp>
+         <pay:IdempotencyKey>soapui-key-0006</pay:IdempotencyKey>
+      </pay:SubmitPaymentRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+    </con:operation>
+    <con:operation isOneWay="false" action="" name="GetPaymentStatus" bindingOperationName="GetPaymentStatus" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional">
+      <con:settings/>
+      <con:call name="1 Known transaction">
+        <con:description>Send SubmitPayment request 1 first. Expect the same result as that request returned.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:GetPaymentStatusRequest>
+         <pay:TransactionReference>FB-SOAPUI-0001</pay:TransactionReference>
+      </pay:GetPaymentStatusRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="2 Unknown transaction">
+        <con:description>Expect a Client fault with ErrorCode UNKNOWN_TRANSACTION.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:GetPaymentStatusRequest>
+         <pay:TransactionReference>FB-SOAPUI-NEVER-SENT</pay:TransactionReference>
+      </pay:GetPaymentStatusRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+    </con:operation>
+    <con:operation isOneWay="false" action="" name="GetSettlementStatement" bindingOperationName="GetSettlementStatement" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional">
+      <con:settings/>
+      <con:call name="1 A wide period">
+        <con:description>Expect one Entry per payment the simulator has recorded since it started, each with its SupplierReference.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:GetSettlementStatementRequest>
+         <pay:FromDate>2026-01-01</pay:FromDate>
+         <pay:ToDate>2030-12-31</pay:ToDate>
+      </pay:GetSettlementStatementRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+      <con:call name="2 An empty period">
+        <con:description>Expect HTTP 200 and no Entry elements.</con:description>
+        <con:settings/>
+        <con:encoding>UTF-8</con:encoding>
+        <con:endpoint>http://localhost:8090/ws</con:endpoint>
+        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://finbridge.com/payments/v1">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:GetSettlementStatementRequest>
+         <pay:FromDate>2001-01-01</pay:FromDate>
+         <pay:ToDate>2001-01-31</pay:ToDate>
+      </pay:GetSettlementStatementRequest>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+        <con:wsaConfig mustUnderstand="NONE" version="200508"/>
+      </con:call>
+    </con:operation>
+  </con:interface>
+  <con:properties/>
+  <con:wssContainer/>
+</con:soapui-project>

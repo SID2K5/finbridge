@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FinBridge payment service contract, version 1.
+
+  This schema is the single source of truth for the SOAP interface:
+    - the simulator publishes a WSDL generated from it (http://<host>:8090/ws/payments.wsdl);
+    - the simulator and the FinBridge backend both generate their JAXB classes from it;
+    - both sides validate every request and response against it.
+  The backend holds an identical copy at backend/src/main/resources/wsdl/payments.xsd.
+  Change the two files together, and never change version 1 incompatibly: add a v2 namespace.
+
+  Element names ending in "Request" and "Response" are what Spring WS turns into the WSDL
+  operations SubmitPayment, GetPaymentStatus and GetSettlementStatement on port type PaymentsPort.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://finbridge.com/payments/v1"
+           targetNamespace="http://finbridge.com/payments/v1"
+           elementFormDefault="qualified">
+
+    <!-- ===== simple types ===== -->
+
+    <xs:simpleType name="TransactionReferenceType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="40"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReferenceType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="64"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CurrencyType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Money: exact decimal, at most 4 fraction digits, never a float. -->
+    <xs:simpleType name="AmountType">
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="19"/>
+            <xs:fractionDigits value="4"/>
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PositiveAmountType">
+        <xs:restriction base="xs:decimal">
+            <xs:totalDigits value="19"/>
+            <xs:fractionDigits value="4"/>
+            <xs:minExclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PaymentStatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SUCCESS"/>
+            <xs:enumeration value="PENDING"/>
+            <xs:enumeration value="FAILED"/>
+            <xs:enumeration value="REJECTED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== complex types ===== -->
+
+    <!-- The outcome of one payment, as returned by submit and by status inquiry. -->
+    <xs:complexType name="PaymentResultType">
+        <xs:sequence>
+            <xs:element name="ExternalTransactionId" type="tns:ReferenceType"/>
+            <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+            <xs:element name="InvoiceReference" type="tns:ReferenceType"/>
+            <xs:element name="ProcessedAmount" type="tns:AmountType"/>
+            <xs:element name="Currency" type="tns:CurrencyType"/>
+            <xs:element name="PaymentStatus" type="tns:PaymentStatusType"/>
+            <xs:element name="ResponseTimestamp" type="xs:dateTime"/>
+            <xs:element name="FailureReason" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- One line of the settlement statement: a payment result plus the supplier it was paid to. -->
+    <xs:complexType name="StatementEntryType">
+        <xs:complexContent>
+            <xs:extension base="tns:PaymentResultType">
+                <xs:sequence>
+                    <xs:element name="SupplierReference" type="tns:ReferenceType"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <!-- ===== operation: SubmitPayment ===== -->
+
+    <xs:element name="SubmitPaymentRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+                <xs:element name="InvoiceReference" type="tns:ReferenceType"/>
+                <xs:element name="SupplierReference" type="tns:ReferenceType"/>
+                <xs:element name="RequestedAmount" type="tns:PositiveAmountType"/>
+                <xs:element name="Currency" type="tns:CurrencyType"/>
+                <xs:element name="RequestTimestamp" type="xs:dateTime"/>
+                <xs:element name="IdempotencyKey" type="tns:ReferenceType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="SubmitPaymentResponse" type="tns:PaymentResultType"/>
+
+    <!-- ===== operation: GetPaymentStatus ===== -->
+
+    <xs:element name="GetPaymentStatusRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="TransactionReference" type="tns:TransactionReferenceType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetPaymentStatusResponse" type="tns:PaymentResultType"/>
+
+    <!-- ===== operation: GetSettlementStatement ===== -->
+
+    <xs:element name="GetSettlementStatementRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="FromDate" type="xs:date"/>
+                <xs:element name="ToDate" type="xs:date"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetSettlementStatementResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Entry" type="tns:StatementEntryType" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!--
+      ===== fault detail =====
+      Carried inside <detail> of a SOAP fault. Business outcomes (FAILED, REJECTED) are normal
+      responses; a fault means the request could not be processed at all.
+        Client / INVALID_REQUEST        schema validation failed
+        Client / IDEMPOTENCY_CONFLICT   same key or reference, different payload
+        Client / UNKNOWN_TRANSACTION    status inquiry for a reference never received
+        Server / SERVICE_UNAVAILABLE    outage; nothing was recorded
+    -->
+    <xs:element name="PaymentFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ErrorCode" type="xs:string"/>
+                <xs:element name="Message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

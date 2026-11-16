@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  FinBridge, stack 1 of 2: the three container image repositories. Deployed first, because
+  the images must exist before the services in the main stack can start.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: finbridge
+    AllowedPattern: "[a-z][a-z0-9-]{2,20}"
+
+Resources:
+  BackendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectName}-backend"
+      ImageTagMutability: IMMUTABLE          # a tag always means the same image
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EmptyOnDelete: true                    # teardown removes the images with the repository
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep the last 5 images",
+            "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+            "action":{"type":"expire"}}]}
+
+  FrontendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectName}-frontend"
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EmptyOnDelete: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep the last 5 images",
+            "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+            "action":{"type":"expire"}}]}
+
+  SimulatorRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectName}-simulator"
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EmptyOnDelete: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep the last 5 images",
+            "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+            "action":{"type":"expire"}}]}
+
+Outputs:
+  BackendRepositoryUri:
+    Value: !GetAtt BackendRepository.RepositoryUri
+  FrontendRepositoryUri:
+    Value: !GetAtt FrontendRepository.RepositoryUri
+  SimulatorRepositoryUri:
+    Value: !GetAtt SimulatorRepository.RepositoryUri
